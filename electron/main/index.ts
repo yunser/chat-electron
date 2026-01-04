@@ -3,8 +3,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
-import { update } from './update'
-import { startMonitoring, registerMonitorIPC } from './monitor'
+import http from 'node:http'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -77,17 +76,43 @@ async function createWindow() {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }
   })
+}
 
-  // Auto update
-  update(win)
+// 创建 HTTP 服务器
+function createHttpServer() {
+  const server = http.createServer((req, res) => {
+    // 设置 CORS 头，允许前端访问
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200)
+      res.end()
+      return
+    }
+
+    if (req.url === '/hello' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ message: 'hello world' }))
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Not Found' }))
+    }
+  })
+
+  const PORT = 38765
+  server.listen(PORT, () => {
+    console.log(`HTTP 服务器运行在 http://localhost:${PORT}`)
+  })
+
+  return server
 }
 
 app.whenReady().then(() => {
   createWindow()
-  // 注册监控 IPC 处理器
-  registerMonitorIPC()
-  // 启动网站监控服务
-  startMonitoring()
+  // 启动 HTTP 服务器
+  createHttpServer()
 })
 
 app.on('window-all-closed', () => {
