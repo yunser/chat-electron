@@ -3,7 +3,8 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
-import http from 'node:http'
+import Koa from 'koa'
+import Router from '@koa/router'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -80,29 +81,40 @@ async function createWindow() {
 
 // 创建 HTTP 服务器
 function createHttpServer() {
-  const server = http.createServer((req, res) => {
-    // 设置 CORS 头，允许前端访问
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  const app = new Koa()
+  const router = new Router()
 
-    if (req.method === 'OPTIONS') {
-      res.writeHead(200)
-      res.end()
+  // 设置 CORS 中间件
+  app.use(async (ctx, next) => {
+    ctx.set('Access-Control-Allow-Origin', '*')
+    ctx.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    ctx.set('Access-Control-Allow-Headers', 'Content-Type')
+
+    if (ctx.method === 'OPTIONS') {
+      ctx.status = 200
       return
     }
 
-    if (req.url === '/hello' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ message: 'hello world' }))
-    } else {
-      res.writeHead(404, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ error: 'Not Found' }))
-    }
+    await next()
+  })
+
+  // 定义路由
+  router.get('/hello', (ctx) => {
+    ctx.body = { message: 'hello world' }
+  })
+
+  // 使用路由
+  app.use(router.routes())
+  app.use(router.allowedMethods())
+
+  // 404 处理
+  app.use(async (ctx) => {
+    ctx.status = 404
+    ctx.body = { error: 'Not Found' }
   })
 
   const PORT = 38765
-  server.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`HTTP 服务器运行在 http://localhost:${PORT}`)
   })
 
