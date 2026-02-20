@@ -43,6 +43,7 @@ function App() {
   const [newUserName, setNewUserName] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const conversationsPollingRef = useRef<NodeJS.Timeout | null>(null)
 
   // 加载对话列表
   const loadConversations = () => {
@@ -59,6 +60,13 @@ function App() {
           if (data.data.length > 0 && !currentConversation) {
             selectConversation(data.data[0])
           }
+          // 如果当前有选中的对话，更新其数据（包括未读数）
+          if (currentConversation) {
+            const updatedConv = data.data.find((c: Conversation) => c.id === currentConversation.id)
+            if (updatedConv) {
+              setCurrentConversation(updatedConv)
+            }
+          }
         }
         setLoading(false)
       })
@@ -71,7 +79,30 @@ function App() {
   useEffect(() => {
     loadConversations()
     loadUsers()
-  }, [])
+    
+    // 定期刷新对话列表以更新未读数
+    conversationsPollingRef.current = setInterval(() => {
+      loadConversations()
+      // 如果当前正在查看某个对话，确保该对话的未读数为0
+      if (currentConversation) {
+        fetch(`${API_BASE}/api/clear-unread`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ conversationId: currentConversation.id }),
+        }).catch(error => {
+          console.error('清除未读数失败:', error)
+        })
+      }
+    }, 3000)
+    
+    return () => {
+      if (conversationsPollingRef.current) {
+        clearInterval(conversationsPollingRef.current)
+      }
+    }
+  }, [currentConversation])
 
   // 定时轮询消息（模拟实时更新）
   useEffect(() => {
@@ -136,6 +167,24 @@ function App() {
   const selectConversation = (conversation: Conversation) => {
     setCurrentConversation(conversation)
     loadMessages(conversation.id)
+    
+    // 清除未读数
+    if (conversation.unread > 0) {
+      fetch(`${API_BASE}/api/clear-unread`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ conversationId: conversation.id }),
+      })
+        .then(() => {
+          // 刷新对话列表
+          loadConversations()
+        })
+        .catch(error => {
+          console.error('清除未读数失败:', error)
+        })
+    }
   }
 
   // 发送消息

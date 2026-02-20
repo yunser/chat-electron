@@ -153,6 +153,24 @@ export function sendMessage(conversationId: number, senderId: number, senderType
   return result.lastInsertRowid
 }
 
+// 增加未读数（当其他人发送消息时）
+export function incrementUnread(conversationId: number) {
+  db.prepare(`
+    UPDATE conversations 
+    SET unread = unread + 1
+    WHERE id = ?
+  `).run(conversationId)
+}
+
+// 清除未读数（当用户打开对话时）
+export function clearUnread(conversationId: number) {
+  db.prepare(`
+    UPDATE conversations 
+    SET unread = 0
+    WHERE id = ?
+  `).run(conversationId)
+}
+
 // 获取所有用户（机器人）
 export function getUsers() {
   const stmt = db.prepare('SELECT * FROM users ORDER BY id DESC')

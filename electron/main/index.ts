@@ -149,6 +149,34 @@ function createHttpServer() {
     }
   })
 
+  // 清除未读数接口
+  router.post('/api/clear-unread', (ctx) => {
+    try {
+      const { conversationId } = ctx.request.body as { conversationId: number }
+      
+      if (!conversationId) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'conversationId is required',
+        }
+        return
+      }
+
+      database.clearUnread(conversationId)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
   // 发送消息接口
   router.post('/api/send-message', (ctx) => {
     try {
@@ -312,6 +340,9 @@ function createHttpServer() {
       }
 
       const messageId = database.sendMessage(conversation.id, userId, 'other', content)
+      
+      // 增加未读数（机器人发送消息，增加未读数）
+      database.incrementUnread(conversation.id)
       
       ctx.body = {
         code: 0,
