@@ -5,6 +5,7 @@ import path from 'node:path'
 import os from 'node:os'
 import Koa from 'koa'
 import Router from '@koa/router'
+import bodyParser from 'koa-bodyparser'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -79,6 +80,114 @@ async function createWindow() {
   })
 }
 
+// 模拟数据
+const mockConversations = [
+  {
+    id: '1',
+    name: '张三',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1',
+    lastMessage: '在吗？',
+    lastTime: '10:30',
+    unread: 2,
+  },
+  {
+    id: '2',
+    name: '李四',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=2',
+    lastMessage: '今天天气不错',
+    lastTime: '昨天',
+    unread: 0,
+  },
+  {
+    id: '3',
+    name: '王五',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=3',
+    lastMessage: '好的，收到',
+    lastTime: '星期三',
+    unread: 1,
+  },
+  {
+    id: '4',
+    name: '赵六',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=4',
+    lastMessage: '明天见',
+    lastTime: '星期二',
+    unread: 0,
+  },
+]
+
+const mockMessages: Record<string, any[]> = {
+  '1': [
+    {
+      id: '1',
+      conversationId: '1',
+      sender: 'other',
+      senderName: '张三',
+      content: '你好',
+      time: '10:25',
+    },
+    {
+      id: '2',
+      conversationId: '1',
+      sender: 'me',
+      content: '你好啊',
+      time: '10:26',
+    },
+    {
+      id: '3',
+      conversationId: '1',
+      sender: 'other',
+      senderName: '张三',
+      content: '在吗？',
+      time: '10:30',
+    },
+  ],
+  '2': [
+    {
+      id: '1',
+      conversationId: '2',
+      sender: 'other',
+      senderName: '李四',
+      content: '今天天气不错',
+      time: '昨天 14:20',
+    },
+    {
+      id: '2',
+      conversationId: '2',
+      sender: 'me',
+      content: '是啊，适合出去走走',
+      time: '昨天 14:25',
+    },
+  ],
+  '3': [
+    {
+      id: '1',
+      conversationId: '3',
+      sender: 'me',
+      content: '文件发给你了',
+      time: '星期三 09:15',
+    },
+    {
+      id: '2',
+      conversationId: '3',
+      sender: 'other',
+      senderName: '王五',
+      content: '好的，收到',
+      time: '星期三 09:20',
+    },
+  ],
+  '4': [
+    {
+      id: '1',
+      conversationId: '4',
+      sender: 'other',
+      senderName: '赵六',
+      content: '明天见',
+      time: '星期二 18:30',
+    },
+  ],
+}
+
 // 创建 HTTP 服务器
 function createHttpServer() {
   const app = new Koa()
@@ -98,9 +207,38 @@ function createHttpServer() {
     await next()
   })
 
-  // 定义路由
-  router.get('/hello', (ctx) => {
-    ctx.body = { message: 'hello world' }
+  // 使用 body parser
+  app.use(bodyParser())
+
+  // 获取对话列表接口
+  router.post('/api/conversations', (ctx) => {
+    ctx.body = {
+      code: 0,
+      message: 'success',
+      data: mockConversations,
+    }
+  })
+
+  // 获取对话消息列表接口
+  router.post('/api/messages', (ctx) => {
+    const { conversationId } = ctx.request.body as { conversationId: string }
+    
+    if (!conversationId) {
+      ctx.status = 400
+      ctx.body = {
+        code: -1,
+        message: 'conversationId is required',
+      }
+      return
+    }
+
+    const messages = mockMessages[conversationId] || []
+    
+    ctx.body = {
+      code: 0,
+      message: 'success',
+      data: messages,
+    }
   })
 
   // 使用路由
