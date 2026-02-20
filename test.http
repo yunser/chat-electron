@@ -33,7 +33,7 @@ Content-Type: application/json
 
 {
   "userId": 1,
-  "content": "你好，这是机器人消息"
+  "content": "你好，这是机器人消息3"
 }
 
 ###

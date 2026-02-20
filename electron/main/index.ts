@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, Notification, screen } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -47,9 +47,14 @@ const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 async function createWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width, height } = primaryDisplay.workAreaSize
+  
   win = new BrowserWindow({
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    width: Math.floor(width * 0.9),
+    height: Math.floor(height * 0.9),
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -343,6 +348,14 @@ function createHttpServer() {
       
       // 增加未读数（机器人发送消息，增加未读数）
       database.incrementUnread(conversation.id)
+      
+      // 发送系统通知
+      const notification = new Notification({
+        title: conversation.name,
+        body: content,
+        silent: false,
+      })
+      notification.show()
       
       ctx.body = {
         code: 0,

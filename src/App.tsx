@@ -41,6 +41,7 @@ function App() {
   const [users, setUsers] = useState<User[]>([])
   const [showUserManage, setShowUserManage] = useState(false)
   const [newUserName, setNewUserName] = useState('')
+  const [darkMode, setDarkMode] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const conversationsPollingRef = useRef<NodeJS.Timeout | null>(null)
@@ -280,22 +281,24 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-gray-600">加载中...</div>
+      <div className={`h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+        <div className={darkMode ? 'text-gray-300' : 'text-gray-600'}>加载中...</div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex bg-gray-100">
+    <div className={`h-screen flex ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* 左侧对话列表 */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className={`w-80 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r flex flex-col`}>
         {/* 顶部搜索栏和管理按钮 */}
-        <div className="p-4 border-b border-gray-200 flex space-x-2">
+        <div className={`p-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'} border-b flex space-x-2`}>
           <input
             type="text"
             placeholder="搜索"
-            className="flex-1 px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            className={`flex-1 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+              darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-900'
+            }`}
           />
           <button
             onClick={() => setShowUserManage(!showUserManage)}
@@ -313,8 +316,10 @@ function App() {
               <div
                 key={conversation.id}
                 onClick={() => selectConversation(conversation)}
-                className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  currentConversation?.id === conversation.id ? 'bg-gray-100' : ''
+                className={`flex items-center p-4 cursor-pointer transition-colors ${
+                  darkMode 
+                    ? `hover:bg-gray-700 ${currentConversation?.id === conversation.id ? 'bg-gray-700' : ''}`
+                    : `hover:bg-gray-50 ${currentConversation?.id === conversation.id ? 'bg-gray-100' : ''}`
                 }`}
               >
                 {/* 头像 */}
@@ -327,11 +332,17 @@ function App() {
                 {/* 对话信息 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <span className="font-semibold text-gray-900 truncate">{conversation.name}</span>
-                    <span className="text-xs text-gray-500 ml-2">{conversation.last_time}</span>
+                    <span className={`font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {conversation.name}
+                    </span>
+                    <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {conversation.last_time}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 truncate">{conversation.last_message}</span>
+                    <span className={`text-sm truncate ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {conversation.last_message}
+                    </span>
                     {conversation.unread > 0 && (
                       <span className="ml-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {conversation.unread}
@@ -344,18 +355,22 @@ function App() {
           ) : (
             // 用户管理面板
             <div className="p-4">
-              <h3 className="font-semibold text-gray-900 mb-4">用户管理</h3>
+              <h3 className={`font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>用户管理</h3>
               
               {/* 添加用户表单 */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">添加新用户</h4>
+              <div className={`mb-6 p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                <h4 className={`text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>添加新用户</h4>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
                     placeholder="用户名称"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode 
+                        ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                   />
                   <button
                     onClick={addUser}
@@ -371,7 +386,11 @@ function App() {
                 {users.filter(u => u.id !== 0).map(user => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
+                    className={`flex items-center justify-between p-3 border rounded-lg ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600'
+                        : 'bg-white border-gray-200'
+                    }`}
                   >
                     <div className="flex items-center">
                       <img
@@ -380,8 +399,10 @@ function App() {
                         className="w-10 h-10 rounded-lg mr-3"
                       />
                       <div>
-                        <div className="font-medium text-gray-900">{user.name}</div>
-                        <div className="text-xs text-gray-500">{user.type === 'bot' ? '机器人' : '用户'}</div>
+                        <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{user.name}</div>
+                        <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {user.type === 'bot' ? '机器人' : '用户'}
+                        </div>
                       </div>
                     </div>
                     <button
@@ -395,9 +416,15 @@ function App() {
               </div>
 
               {/* API 使用说明 */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h4 className="text-sm font-semibold text-blue-900 mb-2">API 调用示例</h4>
-                <div className="text-xs text-blue-800 font-mono bg-white p-3 rounded">
+              <div className={`mt-6 p-4 rounded-lg ${darkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+                <h4 className={`text-sm font-semibold mb-2 ${darkMode ? 'text-blue-300' : 'text-blue-900'}`}>
+                  API 调用示例
+                </h4>
+                <div className={`text-xs font-mono p-3 rounded ${
+                  darkMode 
+                    ? 'bg-gray-800 text-blue-300'
+                    : 'bg-white text-blue-800'
+                }`}>
                   POST {API_BASE}/api/bot/send<br />
                   {`{ "userId": 1, "content": "消息内容" }`}
                 </div>
@@ -412,8 +439,31 @@ function App() {
         {currentConversation ? (
           <>
             {/* 顶部标题栏 */}
-            <div className="h-16 bg-white border-b border-gray-200 flex items-center px-6">
-              <span className="font-semibold text-gray-900">{currentConversation.name}</span>
+            <div className={`h-16 border-b flex items-center px-6 justify-between ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {currentConversation.name}
+              </span>
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`p-2 rounded-lg transition-colors ${
+                  darkMode 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+                title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
+              >
+                {darkMode ? (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             {/* 消息列表 */}
@@ -428,12 +478,16 @@ function App() {
                       className={`px-4 py-2 rounded-lg ${
                         message.sender_type === 'me'
                           ? 'bg-green-500 text-white'
+                          : darkMode
+                          ? 'bg-gray-700 text-white'
                           : 'bg-white text-gray-900'
                       }`}
                     >
                       {message.content}
                     </div>
-                    <div className={`text-xs text-gray-500 mt-1 ${message.sender_type === 'me' ? 'text-right' : 'text-left'}`}>
+                    <div className={`text-xs mt-1 ${
+                      message.sender_type === 'me' ? 'text-right' : 'text-left'
+                    } ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -443,14 +497,20 @@ function App() {
             </div>
 
             {/* 底部输入框 */}
-            <div className="bg-white border-t border-gray-200 p-4">
+            <div className={`border-t p-4 ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
               <div className="flex space-x-2">
                 <textarea
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="输入消息..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                  className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none ${
+                    darkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
                   rows={3}
                 />
                 <button
@@ -463,7 +523,7 @@ function App() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
+          <div className={`flex-1 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             选择一个对话开始聊天
           </div>
         )}
