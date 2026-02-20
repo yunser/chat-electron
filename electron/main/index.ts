@@ -6,6 +6,7 @@ import os from 'node:os'
 import Koa from 'koa'
 import Router from '@koa/router'
 import bodyParser from 'koa-bodyparser'
+import * as database from './database'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -80,114 +81,6 @@ async function createWindow() {
   })
 }
 
-// 模拟数据
-const mockConversations = [
-  {
-    id: '1',
-    name: '张三',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1',
-    lastMessage: '在吗？',
-    lastTime: '10:30',
-    unread: 2,
-  },
-  {
-    id: '2',
-    name: '李四',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=2',
-    lastMessage: '今天天气不错',
-    lastTime: '昨天',
-    unread: 0,
-  },
-  {
-    id: '3',
-    name: '王五',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=3',
-    lastMessage: '好的，收到',
-    lastTime: '星期三',
-    unread: 1,
-  },
-  {
-    id: '4',
-    name: '赵六',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=4',
-    lastMessage: '明天见',
-    lastTime: '星期二',
-    unread: 0,
-  },
-]
-
-const mockMessages: Record<string, any[]> = {
-  '1': [
-    {
-      id: '1',
-      conversationId: '1',
-      sender: 'other',
-      senderName: '张三',
-      content: '你好',
-      time: '10:25',
-    },
-    {
-      id: '2',
-      conversationId: '1',
-      sender: 'me',
-      content: '你好啊',
-      time: '10:26',
-    },
-    {
-      id: '3',
-      conversationId: '1',
-      sender: 'other',
-      senderName: '张三',
-      content: '在吗？',
-      time: '10:30',
-    },
-  ],
-  '2': [
-    {
-      id: '1',
-      conversationId: '2',
-      sender: 'other',
-      senderName: '李四',
-      content: '今天天气不错',
-      time: '昨天 14:20',
-    },
-    {
-      id: '2',
-      conversationId: '2',
-      sender: 'me',
-      content: '是啊，适合出去走走',
-      time: '昨天 14:25',
-    },
-  ],
-  '3': [
-    {
-      id: '1',
-      conversationId: '3',
-      sender: 'me',
-      content: '文件发给你了',
-      time: '星期三 09:15',
-    },
-    {
-      id: '2',
-      conversationId: '3',
-      sender: 'other',
-      senderName: '王五',
-      content: '好的，收到',
-      time: '星期三 09:20',
-    },
-  ],
-  '4': [
-    {
-      id: '1',
-      conversationId: '4',
-      sender: 'other',
-      senderName: '赵六',
-      content: '明天见',
-      time: '星期二 18:30',
-    },
-  ],
-}
-
 // 创建 HTTP 服务器
 function createHttpServer() {
   const app = new Koa()
@@ -212,32 +105,224 @@ function createHttpServer() {
 
   // 获取对话列表接口
   router.post('/api/conversations', (ctx) => {
-    ctx.body = {
-      code: 0,
-      message: 'success',
-      data: mockConversations,
+    try {
+      const conversations = database.getConversations()
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: conversations,
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
     }
   })
 
   // 获取对话消息列表接口
   router.post('/api/messages', (ctx) => {
-    const { conversationId } = ctx.request.body as { conversationId: string }
-    
-    if (!conversationId) {
-      ctx.status = 400
+    try {
+      const { conversationId } = ctx.request.body as { conversationId: number }
+      
+      if (!conversationId) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'conversationId is required',
+        }
+        return
+      }
+
+      const messages = database.getMessages(conversationId)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: messages,
+      }
+    } catch (error: any) {
       ctx.body = {
         code: -1,
-        message: 'conversationId is required',
+        message: error.message,
       }
-      return
     }
+  })
 
-    const messages = mockMessages[conversationId] || []
-    
-    ctx.body = {
-      code: 0,
-      message: 'success',
-      data: messages,
+  // 发送消息接口
+  router.post('/api/send-message', (ctx) => {
+    try {
+      const { conversationId, senderId, senderType, content } = ctx.request.body as {
+        conversationId: number
+        senderId: number
+        senderType: string
+        content: string
+      }
+      
+      if (!conversationId || senderId === undefined || !senderType || !content) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'Missing required fields',
+        }
+        return
+      }
+
+      const messageId = database.sendMessage(conversationId, senderId, senderType, content)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: { messageId },
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
+  // 获取所有用户（机器人）列表
+  router.post('/api/users', (ctx) => {
+    try {
+      const users = database.getUsers()
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: users,
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
+  // 添加用户（机器人）
+  router.post('/api/user/add', (ctx) => {
+    try {
+      const { name, avatar } = ctx.request.body as { name: string; avatar: string }
+      
+      if (!name) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'name is required',
+        }
+        return
+      }
+
+      const userId = database.addUser(name, avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: { userId },
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
+  // 更新用户（机器人）
+  router.post('/api/user/update', (ctx) => {
+    try {
+      const { id, name, avatar } = ctx.request.body as { id: number; name: string; avatar: string }
+      
+      if (!id || !name) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'id and name are required',
+        }
+        return
+      }
+
+      database.updateUser(id, name, avatar)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
+  // 删除用户（机器人）
+  router.post('/api/user/delete', (ctx) => {
+    try {
+      const { id } = ctx.request.body as { id: number }
+      
+      if (!id) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'id is required',
+        }
+        return
+      }
+
+      database.deleteUser(id)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
+  // 公共接口：以机器人名义发送消息
+  router.post('/api/bot/send', (ctx) => {
+    try {
+      const { userId, content } = ctx.request.body as { userId: number; content: string }
+      
+      if (!userId || !content) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'userId and content are required',
+        }
+        return
+      }
+
+      // 获取对话ID
+      const conversation = database.getConversationByUserId(userId) as any
+      
+      if (!conversation) {
+        ctx.status = 404
+        ctx.body = {
+          code: -1,
+          message: 'Conversation not found',
+        }
+        return
+      }
+
+      const messageId = database.sendMessage(conversation.id, userId, 'other', content)
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: { messageId },
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
     }
   })
 
@@ -260,6 +345,9 @@ function createHttpServer() {
 }
 
 app.whenReady().then(() => {
+  // 初始化数据库
+  database.initDatabase()
+  
   createWindow()
   // 启动 HTTP 服务器
   createHttpServer()
@@ -267,7 +355,14 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   win = null
-  if (process.platform !== 'darwin') app.quit()
+  if (process.platform !== 'darwin') {
+    database.closeDatabase()
+    app.quit()
+  }
+})
+
+app.on('before-quit', () => {
+  database.closeDatabase()
 })
 
 app.on('second-instance', () => {

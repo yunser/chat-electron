@@ -2,21 +2,32 @@ import { useEffect, useState, useRef } from 'react'
 import './App.css'
 
 interface Conversation {
-  id: string
+  id: number
+  user_id: number
   name: string
   avatar: string
-  lastMessage: string
-  lastTime: string
+  type: string
+  last_message: string
+  last_time: string
   unread: number
 }
 
 interface Message {
-  id: string
-  conversationId: string
-  sender: 'me' | 'other'
-  senderName?: string
+  id: number
+  conversation_id: number
+  sender_id: number
+  sender_type: 'me' | 'other'
+  sender_name: string
   content: string
-  time: string
+  created_at: string
+}
+
+interface User {
+  id: number
+  name: string
+  avatar: string
+  type: string
+  created_at: string
 }
 
 const API_BASE = 'http://localhost:38765'
@@ -27,10 +38,14 @@ function App() {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
   const [inputMessage, setInputMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState<User[]>([])
+  const [showUserManage, setShowUserManage] = useState(false)
+  const [newUserName, setNewUserName] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // 加载对话列表
-  useEffect(() => {
+  const loadConversations = () => {
     fetch(`${API_BASE}/api/conversations`, {
       method: 'POST',
       headers: {
@@ -41,7 +56,7 @@ function App() {
       .then(data => {
         if (data.code === 0) {
           setConversations(data.data)
-          if (data.data.length > 0) {
+          if (data.data.length > 0 && !currentConversation) {
             selectConversation(data.data[0])
           }
         }
@@ -51,24 +66,60 @@ function App() {
         console.error('加载对话列表失败:', error)
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    loadConversations()
+    loadUsers()
   }, [])
+
+  // 定时轮询消息（模拟实时更新）
+  useEffect(() => {
+    if (currentConversation) {
+      pollIntervalRef.current = setInterval(() => {
+        loadMessages(currentConversation.id)
+      }, 2000)
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [currentConversation])
 
   // 滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // 选择对话
-  const selectConversation = (conversation: Conversation) => {
-    setCurrentConversation(conversation)
-    
-    // 加载消息列表
+  // 加载用户列表
+  const loadUsers = () => {
+    fetch(`${API_BASE}/api/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.code === 0) {
+          setUsers(data.data)
+        }
+      })
+      .catch(error => {
+        console.error('加载用户列表失败:', error)
+      })
+  }
+
+  // 加载消息列表
+  const loadMessages = (conversationId: number) => {
     fetch(`${API_BASE}/api/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ conversationId: conversation.id }),
+      body: JSON.stringify({ conversationId }),
     })
       .then(response => response.json())
       .then(data => {
@@ -81,20 +132,93 @@ function App() {
       })
   }
 
+  // 选择对话
+  const selectConversation = (conversation: Conversation) => {
+    setCurrentConversation(conversation)
+    loadMessages(conversation.id)
+  }
+
   // 发送消息
   const sendMessage = () => {
     if (!inputMessage.trim() || !currentConversation) return
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      conversationId: currentConversation.id,
-      sender: 'me',
-      content: inputMessage,
-      time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-    }
+    fetch(`${API_BASE}/api/send-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        conversationId: currentConversation.id,
+        senderId: 0,
+        senderType: 'me',
+        content: inputMessage,
+      }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.code === 0) {
+          setInputMessage('')
+          loadMessages(currentConversation.id)
+          loadConversations()
+        }
+      })
+      .catch(error => {
+        console.error('发送消息失败:', error)
+      })
+  }
 
-    setMessages([...messages, newMessage])
-    setInputMessage('')
+  // 添加用户（机器人）
+  const addUser = () => {
+    if (!newUserName.trim()) return
+
+    fetch(`${API_BASE}/api/user/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: newUserName,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`,
+      }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.code === 0) {
+          setNewUserName('')
+          loadUsers()
+          loadConversations()
+        }
+      })
+      .catch(error => {
+        console.error('添加用户失败:', error)
+      })
+  }
+
+  // 删除用户（机器人）
+  const deleteUser = (id: number) => {
+    if (!confirm('确定要删除这个用户吗？')) return
+
+    fetch(`${API_BASE}/api/user/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.code === 0) {
+          loadUsers()
+          loadConversations()
+          if (currentConversation?.user_id === id) {
+            setCurrentConversation(null)
+            setMessages([])
+          }
+        }
+      })
+      .catch(error => {
+        console.error('删除用户失败:', error)
+      })
   }
 
   // 处理回车发送
@@ -117,49 +241,120 @@ function App() {
     <div className="h-screen flex bg-gray-100">
       {/* 左侧对话列表 */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* 顶部搜索栏 */}
-        <div className="p-4 border-b border-gray-200">
+        {/* 顶部搜索栏和管理按钮 */}
+        <div className="p-4 border-b border-gray-200 flex space-x-2">
           <input
             type="text"
             placeholder="搜索"
-            className="w-full px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="flex-1 px-3 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
           />
+          <button
+            onClick={() => setShowUserManage(!showUserManage)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            {showUserManage ? '聊天' : '管理'}
+          </button>
         </div>
 
-        {/* 对话列表 */}
+        {/* 对话列表或用户管理 */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.map(conversation => (
-            <div
-              key={conversation.id}
-              onClick={() => selectConversation(conversation)}
-              className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                currentConversation?.id === conversation.id ? 'bg-gray-100' : ''
-              }`}
-            >
-              {/* 头像 */}
-              <img
-                src={conversation.avatar}
-                alt={conversation.name}
-                className="w-12 h-12 rounded-lg mr-3"
-              />
-              
-              {/* 对话信息 */}
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-1">
-                  <span className="font-semibold text-gray-900 truncate">{conversation.name}</span>
-                  <span className="text-xs text-gray-500 ml-2">{conversation.lastTime}</span>
+          {!showUserManage ? (
+            // 对话列表
+            conversations.map(conversation => (
+              <div
+                key={conversation.id}
+                onClick={() => selectConversation(conversation)}
+                className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  currentConversation?.id === conversation.id ? 'bg-gray-100' : ''
+                }`}
+              >
+                {/* 头像 */}
+                <img
+                  src={conversation.avatar}
+                  alt={conversation.name}
+                  className="w-12 h-12 rounded-lg mr-3"
+                />
+                
+                {/* 对话信息 */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="font-semibold text-gray-900 truncate">{conversation.name}</span>
+                    <span className="text-xs text-gray-500 ml-2">{conversation.last_time}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 truncate">{conversation.last_message}</span>
+                    {conversation.unread > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {conversation.unread}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 truncate">{conversation.lastMessage}</span>
-                  {conversation.unread > 0 && (
-                    <span className="ml-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {conversation.unread}
-                    </span>
-                  )}
+              </div>
+            ))
+          ) : (
+            // 用户管理面板
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-900 mb-4">用户管理</h3>
+              
+              {/* 添加用户表单 */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">添加新用户</h4>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    placeholder="用户名称"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={addUser}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  >
+                    添加
+                  </button>
+                </div>
+              </div>
+
+              {/* 用户列表 */}
+              <div className="space-y-2">
+                {users.filter(u => u.id !== 0).map(user => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
+                  >
+                    <div className="flex items-center">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-lg mr-3"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">{user.name}</div>
+                        <div className="text-xs text-gray-500">{user.type === 'bot' ? '机器人' : '用户'}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteUser(user.id)}
+                      className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* API 使用说明 */}
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">API 调用示例</h4>
+                <div className="text-xs text-blue-800 font-mono bg-white p-3 rounded">
+                  POST {API_BASE}/api/bot/send<br />
+                  {`{ "userId": 1, "content": "消息内容" }`}
                 </div>
               </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -177,20 +372,20 @@ function App() {
               {messages.map(message => (
                 <div
                   key={message.id}
-                  className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${message.sender_type === 'me' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-md ${message.sender === 'me' ? 'order-2' : 'order-1'}`}>
+                  <div className={`max-w-md ${message.sender_type === 'me' ? 'order-2' : 'order-1'}`}>
                     <div
                       className={`px-4 py-2 rounded-lg ${
-                        message.sender === 'me'
+                        message.sender_type === 'me'
                           ? 'bg-green-500 text-white'
                           : 'bg-white text-gray-900'
                       }`}
                     >
                       {message.content}
                     </div>
-                    <div className={`text-xs text-gray-500 mt-1 ${message.sender === 'me' ? 'text-right' : 'text-left'}`}>
-                      {message.time}
+                    <div className={`text-xs text-gray-500 mt-1 ${message.sender_type === 'me' ? 'text-right' : 'text-left'}`}>
+                      {new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                 </div>
