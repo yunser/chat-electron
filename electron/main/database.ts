@@ -1,9 +1,18 @@
 import Database from 'better-sqlite3'
 import path from 'node:path'
 import { app } from 'electron'
+import os from 'node:os'
+import fs from 'node:fs'
 
 // 数据库文件路径
-const dbPath = path.join(app.getPath('userData'), 'chat.db')
+const dbDir = path.join(os.homedir(), '.chat-electron')
+const dbPath = path.join(dbDir, 'data.db')
+
+// 确保数据库目录存在
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true })
+}
+
 const db = new Database(dbPath)
 
 // 初始化数据库表

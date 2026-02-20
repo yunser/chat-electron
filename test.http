@@ -1,0 +1,66 @@
+### 获取对话列表
+POST http://localhost:38765/api/conversations
+Content-Type: application/json
+
+###
+
+### 获取消息列表
+POST http://localhost:38765/api/messages
+Content-Type: application/json
+
+{
+  "conversationId": 1
+}
+
+###
+
+### 发送消息
+POST http://localhost:38765/api/send-message
+Content-Type: application/json
+
+{
+  "conversationId": 1,
+  "senderId": 0,
+  "senderType": "me",
+  "content": "测试消息"
+}
+
+###
+
+### 机器人发送消息
+POST http://localhost:38765/api/bot/send
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "content": "你好，这是机器人消息"
+}
+
+###
+
+### 获取用户列表
+POST http://localhost:38765/api/users
+Content-Type: application/json
+
+###
+
+### 添加用户
+POST http://localhost:38765/api/user/add
+Content-Type: application/json
+
+{
+  "name": "新机器人",
+  "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=test"
+}
+
+###
+
+### 删除用户
+POST http://localhost:38765/api/user/delete
+Content-Type: application/json
+
+{
+  "id": 2
+}
+
+###
