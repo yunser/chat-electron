@@ -34,9 +34,12 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   const [inputMessage, setInputMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const conversationsPollingRef = useRef<NodeJS.Timeout | null>(null)
   const currentConversationIdRef = useRef<number | null>(null)
+  const previousMessagesLengthRef = useRef<number>(0)
+  const shouldForceScrollRef = useRef<boolean>(false)
 
   // 加载对话列表
   const loadConversations = () => {
@@ -106,7 +109,30 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   }, [currentConversation?.id])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // 如果需要强制滚动（用户主动切换会话或发送消息）
+    if (shouldForceScrollRef.current) {
+      shouldForceScrollRef.current = false
+      messagesEndRef.current?.scrollIntoView()
+      previousMessagesLengthRef.current = messages.length
+      return
+    }
+
+    // 检查是否有新消息
+    const hasNewMessages = messages.length > previousMessagesLengthRef.current
+    previousMessagesLengthRef.current = messages.length
+
+    // 只在有新消息时才考虑滚动
+    if (!hasNewMessages || !messagesContainerRef.current) return
+
+    // 检查用户是否在底部附近（距离底部小于 100px）
+    const container = messagesContainerRef.current
+    const isNearBottom = 
+      container.scrollHeight - container.scrollTop - container.clientHeight < 100
+
+    // 只有用户在底部附近时才自动滚动
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView()
+    }
   }, [messages])
 
   const loadMessages = (conversationId: number) => {
@@ -129,8 +155,18 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   }
 
   const selectConversation = (conversation: Conversation) => {
+    // 判断是否是切换到不同的对话
+    const isNewConversation = currentConversationIdRef.current !== conversation.id
+    
+    // 如果点击的是当前会话，不做任何操作
+    if (!isNewConversation) {
+      return
+    }
+    
     setCurrentConversation(conversation)
     currentConversationIdRef.current = conversation.id
+    previousMessagesLengthRef.current = 0
+    shouldForceScrollRef.current = true // 切换到新对话时强制滚动到底部
     loadMessages(conversation.id)
     
     // 只在用户主动点击对话时清除未读数
@@ -168,6 +204,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
       .then(data => {
         if (data.code === 0) {
           setInputMessage('')
+          shouldForceScrollRef.current = true // 发送消息后强制滚动到底部
           loadMessages(currentConversation.id)
           loadConversations()
         }
@@ -287,7 +324,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-900">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-900">
               {messages.map(message => (
                 <div
                   key={message.id}
