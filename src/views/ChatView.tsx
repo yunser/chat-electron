@@ -1,5 +1,51 @@
 import { useEffect, useState, useRef } from 'react'
 
+// 格式化时间：如果是今天只显示时间，否则显示日期+时间
+function formatMessageTime(dateString: string): string {
+  const date = new Date(dateString)
+  const today = new Date()
+  
+  // 判断是否是今天
+  const isToday = 
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  
+  if (isToday) {
+    // 今天：只显示时间
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  } else {
+    // 不是今天：显示月/日 时间
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    const time = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    return `${month}/${day} ${time}`
+  }
+}
+
+// 格式化会话列表时间：使用 timestamp
+function formatConversationTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  const today = new Date()
+  
+  // 判断是否是今天
+  const isToday = 
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  
+  if (isToday) {
+    // 今天：只显示时间
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  } else {
+    // 不是今天：显示月/日 时间
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    const time = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    return `${month}/${day} ${time}`
+  }
+}
+
 interface Conversation {
   id: number
   user_id: number
@@ -8,6 +54,7 @@ interface Conversation {
   type: string
   last_message: string
   last_time: string
+  last_timestamp: number
   unread: number
   muted: number
 }
@@ -386,7 +433,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                     {conversation.name}
                   </span>
                   <span className="text-xs ml-2 flex-shrink-0 text-gray-500 dark:text-gray-400">
-                    {conversation.last_time}
+                    {formatConversationTime(conversation.last_timestamp)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -465,7 +512,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                     <div className={`text-xs mt-1.5 ${
                       message.sender_type === 'me' ? 'text-right' : 'text-left'
                     } text-gray-400 dark:text-gray-500`}>
-                      {new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      {formatMessageTime(message.created_at)}
                     </div>
                   </div>
                 </div>

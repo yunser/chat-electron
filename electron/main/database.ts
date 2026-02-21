@@ -97,7 +97,7 @@ export function initDatabase() {
 
     const insertUser = db.prepare('INSERT INTO users (name, avatar, type) VALUES (?, ?, ?)')
     const insertConversation = db.prepare('INSERT INTO conversations (user_id, last_message, last_time, last_timestamp, unread) VALUES (?, ?, ?, ?, ?)')
-    const insertMessage = db.prepare('INSERT INTO messages (conversation_id, sender_id, sender_type, content) VALUES (?, ?, ?, ?)')
+    const insertMessage = db.prepare('INSERT INTO messages (conversation_id, sender_id, sender_type, content, created_at) VALUES (?, ?, ?, ?, ?)')
 
     bots.forEach((bot, index) => {
       const result = insertUser.run(bot.name, bot.avatar, 'bot')
@@ -106,12 +106,13 @@ export function initDatabase() {
       // 创建对话
       const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
       const timestamp = Date.now()
+      const now = new Date().toISOString()
       const convResult = insertConversation.run(userId, '你好', time, timestamp, 0)
       const conversationId = convResult.lastInsertRowid
       
       // 添加初始消息
-      insertMessage.run(conversationId, userId, 'other', '你好')
-      insertMessage.run(conversationId, 0, 'me', '你好啊')
+      insertMessage.run(conversationId, userId, 'other', '你好', now)
+      insertMessage.run(conversationId, 0, 'me', '你好啊', now)
     })
   }
 
@@ -161,12 +162,13 @@ export function getMessages(conversationId: number) {
 
 // 发送消息
 export function sendMessage(conversationId: number, senderId: number, senderType: string, content: string) {
+  const now = new Date().toISOString()
   const insertStmt = db.prepare(`
-    INSERT INTO messages (conversation_id, sender_id, sender_type, content)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO messages (conversation_id, sender_id, sender_type, content, created_at)
+    VALUES (?, ?, ?, ?, ?)
   `)
   
-  const result = insertStmt.run(conversationId, senderId, senderType, content)
+  const result = insertStmt.run(conversationId, senderId, senderType, content, now)
   
   // 更新对话的最后消息和时间戳
   const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
