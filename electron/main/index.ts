@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, Notification, screen } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, Notification, screen, Tray, Menu, nativeImage } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -10,6 +10,9 @@ import * as database from './database'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// 用于跟踪应用是否正在退出
+let isQuitting = false
 
 // The built directory structure
 //
@@ -43,6 +46,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let win: BrowserWindow | null = null
+let tray: Tray | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
@@ -53,8 +57,8 @@ async function createWindow() {
   win = new BrowserWindow({
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
-    width: Math.floor(width * 0.9),
-    height: Math.floor(height * 0.9),
+    width,
+    height,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -83,6 +87,84 @@ async function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }
+  })
+
+  // 点击关闭按钮时隐藏窗口而不是退出应用
+  win.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault()
+      win?.hide()
+    }
+  })
+}
+
+// 创建系统托盘
+function createTray() {
+  // 使用项目中的图标文件，macOS 建议使用 PNG 格式
+  const iconPath = process.platform === 'darwin' 
+    ? path.join(process.env.APP_ROOT, 'build/icon.png')
+    : path.join(process.env.VITE_PUBLIC, 'favicon.ico')
+  
+  // 创建托盘图标
+  let trayIcon = nativeImage.createFromPath(iconPath)
+  
+  // 对于 macOS，调整图标大小并设置为模板图标
+  if (process.platform === 'darwin') {
+    trayIcon = trayIcon.resize({ width: 16, height: 16 })
+    trayIcon.setTemplateImage(true)
+  } else {
+    trayIcon = trayIcon.resize({ width: 16, height: 16 })
+  }
+  
+  tray = new Tray(trayIcon)
+  
+  // 设置托盘图标的提示文字
+  tray.setToolTip('Chat Electron')
+  
+  // 创建托盘菜单
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示窗口',
+      click: () => {
+        if (win) {
+          if (win.isMinimized()) win.restore()
+          win.show()
+          win.focus()
+        }
+      }
+    },
+    {
+      label: '隐藏窗口',
+      click: () => {
+        if (win) {
+          win.hide()
+        }
+      }
+    },
+    {
+      type: 'separator'
+    },
+    {
+      label: '退出',
+      click: () => {
+        app.quit()
+      }
+    }
+  ])
+  
+  // 设置托盘菜单
+  tray.setContextMenu(contextMenu)
+  
+  // 点击托盘图标时显示/隐藏窗口
+  tray.on('click', () => {
+    if (win) {
+      if (win.isVisible()) {
+        win.hide()
+      } else {
+        win.show()
+        win.focus()
+      }
+    }
   })
 }
 
@@ -393,6 +475,7 @@ app.whenReady().then(() => {
   database.initDatabase()
   
   createWindow()
+  createTray()
   // 启动 HTTP 服务器
   createHttpServer()
 })
@@ -406,6 +489,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  isQuitting = true
   database.closeDatabase()
 })
 
