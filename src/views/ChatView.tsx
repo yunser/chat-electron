@@ -45,7 +45,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   const shouldForceScrollRef = useRef<boolean>(false)
 
   // 加载对话列表
-  const loadConversations = () => {
+  const loadConversations = (isInitialLoad = false) => {
     fetch(`${API_BASE}/api/conversations`, {
       method: 'POST',
       headers: {
@@ -56,9 +56,40 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
       .then(data => {
         if (data.code === 0) {
           setConversations(data.data)
-          if (data.data.length > 0 && !currentConversationIdRef.current) {
-            selectConversation(data.data[0])
+          
+          // 初次加载时，尝试从 localStorage 恢复上次选中的会话
+          if (isInitialLoad && data.data.length > 0) {
+            const savedConvId = localStorage.getItem('currentConversationId')
+            if (savedConvId) {
+              const savedConv = data.data.find((c: Conversation) => c.id === Number(savedConvId))
+              if (savedConv) {
+                // 恢复会话但不清除未读数
+                setCurrentConversation(savedConv)
+                currentConversationIdRef.current = savedConv.id
+                previousMessagesLengthRef.current = 0
+                shouldForceScrollRef.current = true
+                loadMessages(savedConv.id)
+              } else {
+                // 如果保存的会话不存在，选择第一个（但不清除未读）
+                const firstConv = data.data[0]
+                setCurrentConversation(firstConv)
+                currentConversationIdRef.current = firstConv.id
+                previousMessagesLengthRef.current = 0
+                shouldForceScrollRef.current = true
+                loadMessages(firstConv.id)
+              }
+            } else if (!currentConversationIdRef.current) {
+              // 如果没有保存的会话且当前没有选中会话，选择第一个（但不清除未读）
+              const firstConv = data.data[0]
+              setCurrentConversation(firstConv)
+              currentConversationIdRef.current = firstConv.id
+              previousMessagesLengthRef.current = 0
+              shouldForceScrollRef.current = true
+              loadMessages(firstConv.id)
+            }
           }
+          
+          // 更新当前会话的信息（用于显示最新的未读数等）
           if (currentConversationIdRef.current) {
             const updatedConv = data.data.find((c: Conversation) => c.id === currentConversationIdRef.current)
             if (updatedConv) {
@@ -75,10 +106,10 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   }
 
   useEffect(() => {
-    loadConversations()
+    loadConversations(true) // 初次加载，传入 true
     
     conversationsPollingRef.current = setInterval(() => {
-      loadConversations()
+      loadConversations(false) // 轮询时不做初始化处理
     }, 3000)
     
     return () => {
@@ -172,6 +203,9 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
     shouldForceScrollRef.current = true // 切换到新对话时强制滚动到底部
     loadMessages(conversation.id)
     
+    // 保存当前选中的会话 ID 到 localStorage
+    localStorage.setItem('currentConversationId', conversation.id.toString())
+    
     // 只在用户主动点击对话时清除未读数
     fetch(`${API_BASE}/api/clear-unread`, {
       method: 'POST',
@@ -181,7 +215,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
       body: JSON.stringify({ conversationId: conversation.id }),
     })
       .then(() => {
-        loadConversations()
+        loadConversations(false)
       })
       .catch(error => {
         console.error('清除未读数失败:', error)
