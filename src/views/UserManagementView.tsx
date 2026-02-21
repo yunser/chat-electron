@@ -8,12 +8,6 @@ interface User {
   created_at: string
 }
 
-interface UserStats {
-  messageCount: number
-  conversationCount: number
-  lastActiveTime: string
-}
-
 const API_BASE = 'http://localhost:38765'
 
 // 头像库 - 使用不同的 dicebear 样式和种子
@@ -51,7 +45,6 @@ export function UserManagementView({ initialUserId }: UserManagementViewProps) {
   const [editingName, setEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
   const [editingAvatar, setEditingAvatar] = useState(false)
-  const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [hasAutoSelected, setHasAutoSelected] = useState(false)
 
   // 加载用户列表
@@ -93,24 +86,12 @@ export function UserManagementView({ initialUserId }: UserManagementViewProps) {
       })
   }
 
-  // 加载用户统计信息
-  const loadUserStats = (userId: number) => {
-    // 这里可以调用实际的 API 获取用户统计
-    // 暂时使用模拟数据
-    setUserStats({
-      messageCount: Math.floor(Math.random() * 1000),
-      conversationCount: Math.floor(Math.random() * 50),
-      lastActiveTime: new Date().toLocaleString('zh-CN'),
-    })
-  }
-
   useEffect(() => {
     loadUsers(initialUserId)
   }, [initialUserId])
 
   useEffect(() => {
     if (selectedUser) {
-      loadUserStats(selectedUser.id)
       setEditedName(selectedUser.name)
     }
   }, [selectedUser])
@@ -433,24 +414,6 @@ export function UserManagementView({ initialUserId }: UserManagementViewProps) {
                 </div>
               </div>
             </div>
-
-            {/* 统计信息 */}
-            {userStats && (
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="p-6 rounded-2xl shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                  <div className="text-sm opacity-90 mb-2">消息数量</div>
-                  <div className="text-3xl font-bold">{userStats.messageCount}</div>
-                </div>
-                <div className="p-6 rounded-2xl shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
-                  <div className="text-sm opacity-90 mb-2">会话数量</div>
-                  <div className="text-3xl font-bold">{userStats.conversationCount}</div>
-                </div>
-                <div className="p-6 rounded-2xl shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-                  <div className="text-sm opacity-90 mb-2">最后活跃</div>
-                  <div className="text-sm font-semibold">{userStats.lastActiveTime}</div>
-                </div>
-              </div>
-            )}
 
             {/* API 调用信息 */}
             <div className="p-6 rounded-2xl shadow-lg bg-white dark:bg-gray-800">
