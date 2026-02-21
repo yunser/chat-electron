@@ -221,19 +221,18 @@ async function createTray() {
     }
   ])
   
-  // 设置托盘菜单
-  tray.setContextMenu(contextMenu)
-  
-  // 点击托盘图标时显示/隐藏窗口
+  // 左键点击托盘图标时显示窗口
   tray.on('click', () => {
     if (win) {
-      if (win.isVisible()) {
-        win.hide()
-      } else {
-        win.show()
-        win.focus()
-      }
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
     }
+  })
+  
+  // 右键点击托盘图标时显示菜单
+  tray.on('right-click', () => {
+    tray?.popUpContextMenu(contextMenu)
   })
   
   // 初始化时更新一次图标
