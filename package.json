@@ -1,10 +1,10 @@
 {
-  "name": "electron-vite-react",
-  "productName": "简聊",
+  "name": "flow-chat",
+  "productName": "Flow Chat",
   "version": "26.221.1",
   "main": "dist-electron/main/index.js",
-  "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "description": "Flow Chat",
+  "author": "Yunser",
   "license": "MIT",
   "private": true,
   "debug": {
@@ -17,8 +17,6 @@
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "preview": "vite preview",
-    "pretest": "vite build --mode=test",
-    "test": "vitest run",
     "rebuild": "npx electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {

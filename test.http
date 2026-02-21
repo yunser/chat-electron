@@ -1,11 +1,13 @@
+@host = http://localhost:38765
+
 ### 获取对话列表
-POST http://localhost:38765/api/conversations
+POST {{host}}/api/conversations
 Content-Type: application/json
 
 ###
 
 ### 获取消息列表
-POST http://localhost:38765/api/messages
+POST {{host}}/api/messages
 Content-Type: application/json
 
 {
@@ -15,7 +17,7 @@ Content-Type: application/json
 ###
 
 ### 发送消息
-POST http://localhost:38765/api/send-message
+POST {{host}}/api/send-message
 Content-Type: application/json
 
 {
@@ -28,7 +30,7 @@ Content-Type: application/json
 ###
 
 ### 给测试机器人发送消息
-POST http://localhost:38765/api/bot/send
+POST {{host}}/api/bot/send
 Content-Type: application/json
 
 {
@@ -39,7 +41,7 @@ Content-Type: application/json
 
 
 ### 给李四发送消息
-POST http://localhost:38765/api/bot/send
+POST {{host}}/api/bot/send
 Content-Type: application/json
 
 {
@@ -52,13 +54,13 @@ Content-Type: application/json
 ###
 
 ### 获取用户列表
-POST http://localhost:38765/api/users
+POST {{host}}/api/users
 Content-Type: application/json
 
 ###
 
 ### 添加用户
-POST http://localhost:38765/api/user/add
+POST {{host}}/api/user/add
 Content-Type: application/json
 
 {
@@ -69,7 +71,7 @@ Content-Type: application/json
 ###
 
 ### 删除用户
-POST http://localhost:38765/api/user/delete
+POST {{host}}/api/user/delete
 Content-Type: application/json
 
 {
