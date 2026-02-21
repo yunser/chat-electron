@@ -218,8 +218,24 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
     // 判断是否是切换到不同的对话
     const isNewConversation = currentConversationIdRef.current !== conversation.id
     
-    // 如果点击的是当前会话，不做任何操作
+    // 如果点击的是当前会话
     if (!isNewConversation) {
+      // 如果当前会话有未读消息，清除未读数
+      if (conversation.unread > 0) {
+        fetch(`${API_BASE}/api/clear-unread`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ conversationId: conversation.id }),
+        })
+          .then(() => {
+            loadConversations(false)
+          })
+          .catch(error => {
+            console.error('清除未读数失败:', error)
+          })
+      }
       return
     }
     

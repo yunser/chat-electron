@@ -56,7 +56,7 @@ Content-Type: application/json
 
 {
   "userId": 2,
-  "content": "李四的消息 9"
+  "content": "李四的消息 10"
 }
 
 ### 给李四发送消息（Markdown 格式）
