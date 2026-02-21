@@ -33,8 +33,10 @@ Content-Type: application/json
 
 {
   "userId": 1,
-  "content": "这是测试消息 4"
+  "content": "测试机器人消息 4"
 }
+
+
 
 ### 给李四发送消息
 POST http://localhost:38765/api/bot/send
@@ -42,7 +44,7 @@ Content-Type: application/json
 
 {
   "userId": 2,
-  "content": "李四的消息 4"
+  "content": "李四的消息 8"
 }
 
 

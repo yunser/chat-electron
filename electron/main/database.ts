@@ -28,6 +28,21 @@ export function initDatabase() {
     )
   `)
 
+  // 检查是否需要添加 last_timestamp 字段（数据库迁移）
+  try {
+    const checkColumn = db.prepare(`PRAGMA table_info(conversations)`).all() as any[]
+    const hasTimestamp = checkColumn.some(col => col.name === 'last_timestamp')
+    
+    if (!hasTimestamp) {
+      console.log('添加 last_timestamp 字段...')
+      db.exec(`ALTER TABLE conversations ADD COLUMN last_timestamp INTEGER DEFAULT 0`)
+      // 为现有数据设置时间戳
+      db.exec(`UPDATE conversations SET last_timestamp = ${Date.now()}`)
+    }
+  } catch (error) {
+    console.log('数据库迁移检查:', error)
+  }
+
   // 对话表
   db.exec(`
     CREATE TABLE IF NOT EXISTS conversations (
@@ -35,6 +50,7 @@ export function initDatabase() {
       user_id INTEGER NOT NULL,
       last_message TEXT,
       last_time TEXT,
+      last_timestamp INTEGER DEFAULT 0,
       unread INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -73,7 +89,7 @@ export function initDatabase() {
     ]
 
     const insertUser = db.prepare('INSERT INTO users (name, avatar, type) VALUES (?, ?, ?)')
-    const insertConversation = db.prepare('INSERT INTO conversations (user_id, last_message, last_time, unread) VALUES (?, ?, ?, ?)')
+    const insertConversation = db.prepare('INSERT INTO conversations (user_id, last_message, last_time, last_timestamp, unread) VALUES (?, ?, ?, ?, ?)')
     const insertMessage = db.prepare('INSERT INTO messages (conversation_id, sender_id, sender_type, content) VALUES (?, ?, ?, ?)')
 
     bots.forEach((bot, index) => {
@@ -81,7 +97,9 @@ export function initDatabase() {
       const userId = result.lastInsertRowid
       
       // 创建对话
-      const convResult = insertConversation.run(userId, '你好', new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }), 0)
+      const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      const timestamp = Date.now()
+      const convResult = insertConversation.run(userId, '你好', time, timestamp, 0)
       const conversationId = convResult.lastInsertRowid
       
       // 添加初始消息
@@ -107,7 +125,7 @@ export function getConversations() {
       c.unread
     FROM conversations c
     JOIN users u ON c.user_id = u.id
-    ORDER BY c.id DESC
+    ORDER BY c.last_timestamp DESC
   `)
   
   return stmt.all()
@@ -142,13 +160,14 @@ export function sendMessage(conversationId: number, senderId: number, senderType
   
   const result = insertStmt.run(conversationId, senderId, senderType, content)
   
-  // 更新对话的最后消息
+  // 更新对话的最后消息和时间戳
   const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  const timestamp = Date.now()
   db.prepare(`
     UPDATE conversations 
-    SET last_message = ?, last_time = ?
+    SET last_message = ?, last_time = ?, last_timestamp = ?
     WHERE id = ?
-  `).run(content, time, conversationId)
+  `).run(content, time, timestamp, conversationId)
   
   return result.lastInsertRowid
 }
@@ -198,9 +217,10 @@ export function addUser(name: string, avatar: string, type: string = 'bot') {
   const result = stmt.run(name, avatar, type)
   
   // 自动创建对话
-  const convStmt = db.prepare('INSERT INTO conversations (user_id, last_message, last_time, unread) VALUES (?, ?, ?, ?)')
+  const convStmt = db.prepare('INSERT INTO conversations (user_id, last_message, last_time, last_timestamp, unread) VALUES (?, ?, ?, ?, ?)')
   const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  convStmt.run(result.lastInsertRowid, '', time, 0)
+  const timestamp = Date.now()
+  convStmt.run(result.lastInsertRowid, '', time, timestamp, 0)
   
   return result.lastInsertRowid
 }

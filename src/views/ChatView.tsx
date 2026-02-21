@@ -36,6 +36,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const conversationsPollingRef = useRef<NodeJS.Timeout | null>(null)
+  const currentConversationIdRef = useRef<number | null>(null)
 
   // 加载对话列表
   const loadConversations = () => {
@@ -49,11 +50,11 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
       .then(data => {
         if (data.code === 0) {
           setConversations(data.data)
-          if (data.data.length > 0 && !currentConversation) {
+          if (data.data.length > 0 && !currentConversationIdRef.current) {
             selectConversation(data.data[0])
           }
-          if (currentConversation) {
-            const updatedConv = data.data.find((c: Conversation) => c.id === currentConversation.id)
+          if (currentConversationIdRef.current) {
+            const updatedConv = data.data.find((c: Conversation) => c.id === currentConversationIdRef.current)
             if (updatedConv) {
               setCurrentConversation(updatedConv)
             }
@@ -72,17 +73,6 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
     
     conversationsPollingRef.current = setInterval(() => {
       loadConversations()
-      if (currentConversation) {
-        fetch(`${API_BASE}/api/clear-unread`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ conversationId: currentConversation.id }),
-        }).catch(error => {
-          console.error('清除未读数失败:', error)
-        })
-      }
     }, 3000)
     
     return () => {
@@ -90,13 +80,22 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
         clearInterval(conversationsPollingRef.current)
       }
     }
-  }, [currentConversation])
+  }, [])
 
   useEffect(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
     if (currentConversation) {
+      currentConversationIdRef.current = currentConversation.id
       pollIntervalRef.current = setInterval(() => {
-        loadMessages(currentConversation.id)
+        if (currentConversationIdRef.current) {
+          loadMessages(currentConversationIdRef.current)
+        }
       }, 2000)
+    } else {
+      currentConversationIdRef.current = null
     }
 
     return () => {
@@ -104,7 +103,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
         clearInterval(pollIntervalRef.current)
       }
     }
-  }, [currentConversation])
+  }, [currentConversation?.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -131,23 +130,23 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
 
   const selectConversation = (conversation: Conversation) => {
     setCurrentConversation(conversation)
+    currentConversationIdRef.current = conversation.id
     loadMessages(conversation.id)
     
-    if (conversation.unread > 0) {
-      fetch(`${API_BASE}/api/clear-unread`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ conversationId: conversation.id }),
+    // 只在用户主动点击对话时清除未读数
+    fetch(`${API_BASE}/api/clear-unread`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ conversationId: conversation.id }),
+    })
+      .then(() => {
+        loadConversations()
       })
-        .then(() => {
-          loadConversations()
-        })
-        .catch(error => {
-          console.error('清除未读数失败:', error)
-        })
-    }
+      .catch(error => {
+        console.error('清除未读数失败:', error)
+      })
   }
 
   const sendMessage = () => {
