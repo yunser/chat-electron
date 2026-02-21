@@ -130,6 +130,7 @@ export function getConversations() {
       u.type,
       c.last_message,
       c.last_time,
+      c.last_timestamp,
       c.unread,
       c.muted
     FROM conversations c
