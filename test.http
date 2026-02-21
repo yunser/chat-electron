@@ -29,7 +29,7 @@ Content-Type: application/json
 
 ###
 
-### 给测试机器人发送消息
+### 给测试机器人发送消息（文本格式）
 POST {{host}}/api/bot/send
 Content-Type: application/json
 
@@ -38,15 +38,35 @@ Content-Type: application/json
   "content": "测试机器人消息 4"
 }
 
+### 给测试机器人发送消息（Markdown 格式）
+POST {{host}}/api/bot/send
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "content": "## 这是一个标题\n\n这是一段**加粗**的文字和*斜体*文字。\n\n- 列表项 1\n- 列表项 2\n- 列表项 3\n\n```javascript\nconst hello = 'world';\nconsole.log(hello);\n```",
+  "format": "markdown"
+}
 
 
-### 给李四发送消息
+
+### 给李四发送消息（文本格式）
 POST {{host}}/api/bot/send
 Content-Type: application/json
 
 {
   "userId": 2,
-  "content": "李四的消息 8"
+  "content": "李四的消息 9"
+}
+
+### 给李四发送消息（Markdown 格式）
+POST {{host}}/api/bot/send
+Content-Type: application/json
+
+{
+  "userId": 2,
+  "content": "# Markdown 测试消息\n\n这是一个包含多种格式的消息：\n\n1. **加粗文本**\n2. *斜体文本*\n3. `代码片段`\n\n> 这是一个引用块\n\n[链接示例](https://example.com)",
+  "format": "markdown"
 }
 
 ### 给本地自动化服务发送消息

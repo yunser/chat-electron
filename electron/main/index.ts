@@ -346,11 +346,12 @@ function createHttpServer() {
   // 发送消息接口
   router.post('/api/send-message', (ctx) => {
     try {
-      const { conversationId, senderId, senderType, content } = ctx.request.body as {
+      const { conversationId, senderId, senderType, content, format } = ctx.request.body as {
         conversationId: number
         senderId: number
         senderType: string
         content: string
+        format?: string
       }
       
       if (!conversationId || senderId === undefined || !senderType || !content) {
@@ -362,7 +363,7 @@ function createHttpServer() {
         return
       }
 
-      const messageId = database.sendMessage(conversationId, senderId, senderType, content)
+      const messageId = database.sendMessage(conversationId, senderId, senderType, content, format || 'text')
       
       ctx.body = {
         code: 0,
@@ -514,7 +515,7 @@ function createHttpServer() {
   // 公共接口：以机器人名义发送消息
   router.post('/api/bot/send', (ctx) => {
     try {
-      const { userId, content } = ctx.request.body as { userId: number; content: string }
+      const { userId, content, format } = ctx.request.body as { userId: number; content: string; format?: string }
       
       if (!userId || !content) {
         ctx.status = 400
@@ -537,7 +538,7 @@ function createHttpServer() {
         return
       }
 
-      const messageId = database.sendMessage(conversation.id, userId, 'other', content)
+      const messageId = database.sendMessage(conversation.id, userId, 'other', content, format || 'text')
       
       // 增加未读数（机器人发送消息，增加未读数）
       database.incrementUnread(conversation.id)
@@ -641,4 +642,9 @@ ipcMain.handle('open-win', (_, arg) => {
   } else {
     childWindow.loadFile(indexHtml, { hash: arg })
   }
+})
+
+// Open external URL handler
+ipcMain.handle('open-external', async (_, url: string) => {
+  await shell.openExternal(url)
 })

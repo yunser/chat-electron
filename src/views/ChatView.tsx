@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
 
 // 格式化时间：如果是今天只显示时间，否则显示日期+时间
 function formatTime(dateInput: string | number | Date): string {
@@ -43,6 +44,7 @@ interface Message {
   sender_type: 'me' | 'other'
   sender_name: string
   content: string
+  format?: string
   created_at: string
 }
 
@@ -484,7 +486,30 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                           : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-transparent'
                       }`}
                     >
-                      {message.content}
+                      {message.format === 'markdown' ? (
+                        <div className="markdown-content">
+                          <ReactMarkdown
+                            components={{
+                              a: ({ node, ...props }) => (
+                                <a
+                                  {...props}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    if (props.href) {
+                                      window.electron?.openExternal(props.href)
+                                    }
+                                  }}
+                                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                                />
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+                      )}
                     </div>
                     <div className={`text-xs mt-1.5 ${
                       message.sender_type === 'me' ? 'text-right' : 'text-left'

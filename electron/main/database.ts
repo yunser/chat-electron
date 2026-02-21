@@ -49,6 +49,19 @@ export function initDatabase() {
     console.log('数据库迁移检查:', error)
   }
 
+  // 检查 messages 表是否需要添加 format 字段（数据库迁移）
+  try {
+    const checkColumn = db.prepare(`PRAGMA table_info(messages)`).all() as any[]
+    const hasFormat = checkColumn.some(col => col.name === 'format')
+    
+    if (!hasFormat) {
+      console.log('添加 format 字段...')
+      db.exec(`ALTER TABLE messages ADD COLUMN format TEXT DEFAULT 'text'`)
+    }
+  } catch (error) {
+    console.log('messages 表迁移检查:', error)
+  }
+
   // 对话表
   db.exec(`
     CREATE TABLE IF NOT EXISTS conversations (
@@ -72,6 +85,7 @@ export function initDatabase() {
       sender_id INTEGER NOT NULL,
       sender_type TEXT NOT NULL,
       content TEXT NOT NULL,
+      format TEXT DEFAULT 'text',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (conversation_id) REFERENCES conversations(id),
       FOREIGN KEY (sender_id) REFERENCES users(id)
@@ -150,6 +164,7 @@ export function getMessages(conversationId: number) {
       m.sender_id,
       m.sender_type,
       m.content,
+      m.format,
       m.created_at,
       u.name as sender_name
     FROM messages m
@@ -162,14 +177,14 @@ export function getMessages(conversationId: number) {
 }
 
 // 发送消息
-export function sendMessage(conversationId: number, senderId: number, senderType: string, content: string) {
+export function sendMessage(conversationId: number, senderId: number, senderType: string, content: string, format: string = 'text') {
   const now = new Date().toISOString()
   const insertStmt = db.prepare(`
-    INSERT INTO messages (conversation_id, sender_id, sender_type, content, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO messages (conversation_id, sender_id, sender_type, content, format, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
   `)
   
-  const result = insertStmt.run(conversationId, senderId, senderType, content, now)
+  const result = insertStmt.run(conversationId, senderId, senderType, content, format, now)
   
   // 更新对话的最后消息和时间戳
   const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
