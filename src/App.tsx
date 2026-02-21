@@ -32,6 +32,9 @@ interface User {
 
 const API_BASE = 'http://localhost:38765'
 
+type NavItem = 'chat' | 'users' | 'settings'
+type SettingsTab = 'interface' | 'about'
+
 function App() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -39,7 +42,8 @@ function App() {
   const [inputMessage, setInputMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<User[]>([])
-  const [showUserManage, setShowUserManage] = useState(false)
+  const [activeNav, setActiveNav] = useState<NavItem>('chat')
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>('interface')
   const [newUserName, setNewUserName] = useState('')
   const [darkMode, setDarkMode] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -281,100 +285,148 @@ function App() {
 
   if (loading) {
     return (
-      <div className={`h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-        <div className={darkMode ? 'text-gray-300' : 'text-gray-600'}>加载中...</div>
+      <div className={`h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 ${darkMode ? 'dark' : ''}`}>
+        <div className="text-gray-600 dark:text-gray-300">加载中...</div>
       </div>
     )
   }
 
   return (
-    <div className={`h-screen flex ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      {/* 左侧对话列表 */}
-      <div className={`w-80 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r flex flex-col`}>
-        {/* 顶部搜索栏和管理按钮 */}
-        <div className={`p-4 ${darkMode ? 'border-gray-700' : 'border-gray-200'} border-b flex space-x-2`}>
-          <input
-            type="text"
-            placeholder="搜索"
-            className={`flex-1 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-              darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-900'
-            }`}
-          />
-          <button
-            onClick={() => setShowUserManage(!showUserManage)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            {showUserManage ? '聊天' : '管理'}
-          </button>
-        </div>
+    <div className={`h-screen flex bg-gray-50 dark:bg-gray-950 ${darkMode ? 'dark' : ''}`}>
+      {/* 最左侧图标导航栏 - 最深层 */}
+      <div className="w-20 flex-shrink-0 bg-white dark:bg-gray-900 flex flex-col items-center py-6 gap-3 shadow-xl relative z-30 border-r border-gray-200 dark:border-gray-800">
+        {/* 聊天 */}
+        <button
+          onClick={() => setActiveNav('chat')}
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+            activeNav === 'chat'
+              ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg shadow-green-500/50 scale-105'
+              : 'bg-gray-50 dark:bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+          title="聊天"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </button>
 
-        {/* 对话列表或用户管理 */}
-        <div className="flex-1 overflow-y-auto">
-          {!showUserManage ? (
-            // 对话列表
-            conversations.map(conversation => (
+        {/* 用户管理 */}
+        <button
+          onClick={() => setActiveNav('users')}
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+            activeNav === 'users'
+              ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/50 scale-105'
+              : 'bg-gray-50 dark:bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+          title="用户管理"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </button>
+
+        {/* 设置 */}
+        <button
+          onClick={() => setActiveNav('settings')}
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+            activeNav === 'settings'
+              ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/50 scale-105'
+              : 'bg-gray-50 dark:bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+          title="设置"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+      </div>
+
+      {/* 中间内容面板 - 中等层 */}
+      <div className="w-80 flex-shrink-0 bg-white dark:bg-gray-800 flex flex-col shadow-lg relative z-20">
+        {activeNav === 'chat' && (
+          <>
+            {/* 搜索栏 */}
+            <div className="p-4 bg-white dark:bg-gray-800 shadow-md relative z-10">
+              <input
+                type="text"
+                placeholder="搜索对话..."
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
+
+            {/* 对话列表 */}
+            <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-850">
+              {conversations.map(conversation => (
               <div
                 key={conversation.id}
                 onClick={() => selectConversation(conversation)}
-                className={`flex items-center p-4 cursor-pointer transition-colors ${
-                  darkMode 
-                    ? `hover:bg-gray-700 ${currentConversation?.id === conversation.id ? 'bg-gray-700' : ''}`
-                    : `hover:bg-gray-50 ${currentConversation?.id === conversation.id ? 'bg-gray-100' : ''}`
+                className={`flex items-center p-4 cursor-pointer transition-all duration-150 border-l-4 ${
+                  currentConversation?.id === conversation.id
+                    ? 'bg-green-50 dark:bg-gray-700 border-green-500'
+                    : 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-750 border-transparent'
                 }`}
               >
-                {/* 头像 */}
-                <img
-                  src={conversation.avatar}
-                  alt={conversation.name}
-                  className="w-12 h-12 rounded-lg mr-3"
-                />
+                <div className="relative">
+                  <img
+                    src={conversation.avatar}
+                    alt={conversation.name}
+                    className={`w-12 h-12 rounded-xl mr-3 ring-2 transition-all ${
+                      currentConversation?.id === conversation.id
+                        ? 'ring-green-500'
+                        : 'ring-gray-200 dark:ring-gray-700'
+                    }`}
+                  />
+                  {conversation.unread > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+                      {conversation.unread}
+                    </span>
+                  )}
+                </div>
                 
-                {/* 对话信息 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <span className={`font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <span className="font-semibold truncate text-gray-900 dark:text-white">
                       {conversation.name}
                     </span>
-                    <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <span className="text-xs ml-2 flex-shrink-0 text-gray-500 dark:text-gray-400">
                       {conversation.last_time}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className={`text-sm truncate ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <span className="text-sm truncate text-gray-600 dark:text-gray-400">
                       {conversation.last_message}
                     </span>
-                    {conversation.unread > 0 && (
-                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {conversation.unread}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
-            ))
-          ) : (
-            // 用户管理面板
-            <div className="p-4">
-              <h3 className={`font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>用户管理</h3>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeNav === 'users' && (
+          <>
+            <div className="p-4 bg-white dark:bg-gray-800 shadow-md relative z-10">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">用户管理</h3>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-850">
               
               {/* 添加用户表单 */}
-              <div className={`mb-6 p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <h4 className={`text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>添加新用户</h4>
+              <div className="mb-6 p-4 rounded-xl shadow-md bg-white dark:bg-gray-800">
+                <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-200">添加新用户</h4>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="用户名称"
-                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      darkMode 
-                        ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    placeholder="输入用户名称..."
+                    className="flex-1 px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white dark:bg-gray-600 border-2 border-gray-200 dark:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <button
                     onClick={addUser}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                    className="px-5 py-2.5 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg hover:shadow-green-500/50 transition-all duration-200 font-medium"
                   >
                     添加
                   </button>
@@ -386,28 +438,24 @@ function App() {
                 {users.filter(u => u.id !== 0).map(user => (
                   <div
                     key={user.id}
-                    className={`flex items-center justify-between p-3 border rounded-lg ${
-                      darkMode 
-                        ? 'bg-gray-700 border-gray-600'
-                        : 'bg-white border-gray-200'
-                    }`}
+                    className="flex items-center justify-between p-3 rounded-xl transition-all duration-150 shadow-md bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 border-2 border-gray-100 dark:border-transparent"
                   >
                     <div className="flex items-center">
                       <img
                         src={user.avatar}
                         alt={user.name}
-                        className="w-10 h-10 rounded-lg mr-3"
+                        className="w-10 h-10 rounded-xl mr-3 ring-2 ring-gray-200 dark:ring-gray-600"
                       />
                       <div>
-                        <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{user.name}</div>
-                        <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {user.type === 'bot' ? '机器人' : '用户'}
+                        <div className="font-semibold text-gray-900 dark:text-white">{user.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {user.type === 'bot' ? '🤖 机器人' : '👤 用户'}
                         </div>
                       </div>
                     </div>
                     <button
                       onClick={() => deleteUser(user.id)}
-                      className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                      className="px-4 py-1.5 bg-gradient-to-br from-red-500 to-red-600 text-white text-sm rounded-lg hover:shadow-lg hover:shadow-red-500/50 transition-all duration-200 font-medium"
                     >
                       删除
                     </button>
@@ -416,78 +464,102 @@ function App() {
               </div>
 
               {/* API 使用说明 */}
-              <div className={`mt-6 p-4 rounded-lg ${darkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
-                <h4 className={`text-sm font-semibold mb-2 ${darkMode ? 'text-blue-300' : 'text-blue-900'}`}>
+              <div className="mt-6 p-4 rounded-xl shadow-md bg-blue-50 dark:bg-gray-800 border-2 border-blue-100 dark:border-blue-800/50">
+                <h4 className="text-sm font-semibold mb-3 flex items-center text-blue-900 dark:text-blue-300">
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
                   API 调用示例
                 </h4>
-                <div className={`text-xs font-mono p-3 rounded ${
-                  darkMode 
-                    ? 'bg-gray-800 text-blue-300'
-                    : 'bg-white text-blue-800'
-                }`}>
-                  POST {API_BASE}/api/bot/send<br />
-                  {`{ "userId": 1, "content": "消息内容" }`}
+                <div className="text-xs font-mono p-3 rounded-lg bg-white dark:bg-gray-900/50 text-blue-800 dark:text-blue-300 shadow-sm">
+                  <div className="opacity-75">POST {API_BASE}/api/bot/send</div>
+                  <div className="mt-1">{`{ "userId": 1, "content": "消息内容" }`}</div>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
+
+        {activeNav === 'settings' && (
+          <>
+            <div className="p-4 bg-white dark:bg-gray-800 shadow-md relative z-10">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">设置</h3>
+            </div>
+            
+            <div className="flex-1 flex flex-col p-3 gap-2 bg-gray-50 dark:bg-gray-850">
+              <button
+                onClick={() => setActiveSettingsTab('interface')}
+                className={`p-4 text-left transition-all duration-200 rounded-xl flex items-center ${
+                  activeSettingsTab === 'interface'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-lg border-2 border-purple-500 dark:border-transparent'
+                    : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-750 hover:shadow-sm'
+                }`}
+              >
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+                <span className="font-medium">界面设置</span>
+              </button>
+              <button
+                onClick={() => setActiveSettingsTab('about')}
+                className={`p-4 text-left transition-all duration-200 rounded-xl flex items-center ${
+                  activeSettingsTab === 'about'
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-lg border-2 border-purple-500 dark:border-transparent'
+                    : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-750 hover:shadow-sm'
+                }`}
+              >
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">关于</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* 右侧聊天区域 */}
-      <div className="flex-1 flex flex-col">
-        {currentConversation ? (
+      {/* 右侧内容区域 - 最浅层 */}
+      <div className="flex-1 flex flex-col relative z-10">
+        {activeNav === 'chat' && currentConversation ? (
           <>
             {/* 顶部标题栏 */}
-            <div className={`h-16 border-b flex items-center px-6 justify-between ${
-              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}>
-              <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {currentConversation.name}
-              </span>
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 rounded-lg transition-colors ${
-                  darkMode 
-                    ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-                title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
-              >
-                {darkMode ? (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                  </svg>
-                )}
-              </button>
+            <div className="h-16 flex items-center px-6 shadow-sm bg-white dark:bg-gray-800">
+              <img
+                src={currentConversation.avatar}
+                alt={currentConversation.name}
+                className="w-10 h-10 rounded-xl mr-3 ring-2 ring-green-500"
+              />
+              <div>
+                <span className="font-bold text-lg text-gray-900 dark:text-white">
+                  {currentConversation.name}
+                </span>
+                <div className="flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">在线</span>
+                </div>
+              </div>
             </div>
 
             {/* 消息列表 */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-gray-900">
               {messages.map(message => (
                 <div
                   key={message.id}
-                  className={`flex ${message.sender_type === 'me' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${message.sender_type === 'me' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                 >
                   <div className={`max-w-md ${message.sender_type === 'me' ? 'order-2' : 'order-1'}`}>
                     <div
-                      className={`px-4 py-2 rounded-lg ${
+                      className={`px-5 py-3 rounded-2xl shadow-sm ${
                         message.sender_type === 'me'
-                          ? 'bg-green-500 text-white'
-                          : darkMode
-                          ? 'bg-gray-700 text-white'
-                          : 'bg-white text-gray-900'
+                          ? 'bg-gradient-to-br from-green-500 to-green-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-transparent'
                       }`}
                     >
                       {message.content}
                     </div>
-                    <div className={`text-xs mt-1 ${
+                    <div className={`text-xs mt-1.5 ${
                       message.sender_type === 'me' ? 'text-right' : 'text-left'
-                    } ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    } text-gray-400 dark:text-gray-500`}>
                       {new Date(message.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -497,34 +569,167 @@ function App() {
             </div>
 
             {/* 底部输入框 */}
-            <div className={`border-t p-4 ${
-              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}>
-              <div className="flex space-x-2">
+            <div className="p-4 shadow-lg bg-white dark:bg-gray-800">
+              <div className="flex space-x-3">
                 <textarea
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="输入消息..."
-                  className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none ${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  }`}
+                  className="flex-1 px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 resize-none transition-all bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border-2 border-gray-200 dark:border-transparent"
                   rows={3}
                 />
                 <button
                   onClick={sendMessage}
-                  className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                  className="px-6 py-3 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl hover:shadow-xl hover:shadow-green-500/50 transition-all duration-200 font-semibold flex items-center justify-center"
                 >
-                  发送
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
                 </button>
               </div>
             </div>
           </>
-        ) : (
-          <div className={`flex-1 flex items-center justify-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            选择一个对话开始聊天
+        ) : activeNav === 'chat' ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <svg className="w-24 h-24 mb-4 text-gray-300 dark:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 className="text-xl font-semibold mb-2 text-gray-500 dark:text-gray-400">
+              开始对话
+            </h3>
+            <p className="text-gray-400 dark:text-gray-500">
+              从左侧选择一个对话开始聊天
+            </p>
+          </div>
+        ) : null}
+
+        {activeNav === 'users' && (
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <svg className="w-24 h-24 mb-4 text-gray-300 dark:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <h3 className="text-xl font-semibold mb-2 text-gray-500 dark:text-gray-400">
+              用户管理
+            </h3>
+            <p className="text-gray-400 dark:text-gray-500">
+              在左侧面板管理用户
+            </p>
+          </div>
+        )}
+
+        {activeNav === 'settings' && (
+          <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+            {activeSettingsTab === 'interface' && (
+              <div className="p-8">
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                  </div>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">界面设置</h2>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="p-6 rounded-2xl shadow-lg bg-white dark:bg-gray-800">
+                    <h3 className="text-lg font-bold mb-4 flex items-center text-gray-900 dark:text-white">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                      外观主题
+                    </h3>
+                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-white">
+                            深色模式
+                          </div>
+                          <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
+                            切换应用的外观主题，保护您的眼睛
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setDarkMode(!darkMode)}
+                          className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-200 ${
+                            darkMode ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-lg shadow-green-500/50' : 'bg-gray-300'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-200 ${
+                              darkMode ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSettingsTab === 'about' && (
+              <div className="p-8">
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">关于</h2>
+                </div>
+                
+                <div className="p-6 rounded-2xl shadow-lg bg-white dark:bg-gray-800">
+                  <div className="space-y-6">
+                    <div className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-2xl mr-4">
+                        CE
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          应用名称
+                        </div>
+                        <div className="text-2xl font-bold mt-1 text-gray-900 dark:text-white">
+                          Chat Electron
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                      <div className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">
+                        版本信息
+                      </div>
+                      <div className="flex items-center">
+                        <span className="px-3 py-1 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg text-sm font-semibold">
+                          v1.0.0
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700">
+                      <div className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">
+                        应用描述
+                      </div>
+                      <div className="text-gray-700 dark:text-gray-300">
+                        一个基于 Electron 的现代化聊天应用程序，提供流畅的用户体验和强大的消息管理功能。
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl border-2 bg-blue-50 dark:bg-gray-900/50 border-blue-200 dark:border-gray-700">
+                      <div className="text-sm font-medium mb-2 flex items-center text-gray-600 dark:text-gray-400">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        API 基础地址
+                      </div>
+                      <div className="font-mono text-sm text-blue-600 dark:text-blue-400">
+                        {API_BASE}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
