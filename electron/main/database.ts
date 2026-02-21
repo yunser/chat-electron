@@ -171,6 +171,15 @@ export function clearUnread(conversationId: number) {
   `).run(conversationId)
 }
 
+// 获取总未读数
+export function getTotalUnread() {
+  const result = db.prepare(`
+    SELECT SUM(unread) as total FROM conversations
+  `).get() as { total: number | null }
+  
+  return result.total || 0
+}
+
 // 获取所有用户（机器人）
 export function getUsers() {
   const stmt = db.prepare('SELECT * FROM users ORDER BY id DESC')

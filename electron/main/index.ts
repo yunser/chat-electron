@@ -7,6 +7,9 @@ import Koa from 'koa'
 import Router from '@koa/router'
 import bodyParser from 'koa-bodyparser'
 import * as database from './database'
+import { createCanvas, loadImage, Image } from 'canvas'
+
+// console.log('versions', process.versions)
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -98,25 +101,91 @@ async function createWindow() {
   })
 }
 
-// 创建系统托盘
-function createTray() {
-  // 使用项目中的图标文件，macOS 建议使用 PNG 格式
-  const iconPath = process.platform === 'darwin' 
-    ? path.join(process.env.APP_ROOT, 'build/icon.png')
-    : path.join(process.env.VITE_PUBLIC, 'favicon.ico')
+// 创建带未读数的托盘图标
+async function createTrayIconWithBadge(unreadCount: number) {
+  // 使用 tray.png 作为托盘图标
+  const iconPath = path.join(process.env.APP_ROOT, 'build/tray.png')
   
-  // 创建托盘图标
-  let trayIcon = nativeImage.createFromPath(iconPath)
+  let baseIcon = nativeImage.createFromPath(iconPath)
   
-  // 对于 macOS，调整图标大小并设置为模板图标
-  if (process.platform === 'darwin') {
-    trayIcon = trayIcon.resize({ width: 16, height: 16 })
-    trayIcon.setTemplateImage(true)
-  } else {
-    trayIcon = trayIcon.resize({ width: 16, height: 16 })
+  if (unreadCount === 0) {
+    // 没有未读消息，返回原始图标
+    if (process.platform === 'darwin') {
+      baseIcon = baseIcon.resize({ width: 16, height: 16 })
+      baseIcon.setTemplateImage(true)
+    } else {
+      baseIcon = baseIcon.resize({ width: 16, height: 16 })
+    }
+    return baseIcon
   }
   
-  tray = new Tray(trayIcon)
+  // 有未读消息，在图标右侧绘制文字（类似微信）
+  const iconSize = 16 // 图标大小
+  const fontSize = 16 // 字体大小
+  const text = unreadCount > 99 ? '99+' : unreadCount.toString()
+  
+  // 创建一个临时画布来测量文字宽度
+  const tempCanvas = createCanvas(100, 100)
+  const tempCtx = tempCanvas.getContext('2d')
+  tempCtx.font = `bold ${fontSize}px Arial`
+  const textMetrics = tempCtx.measureText(text)
+  const textWidth = Math.ceil(textMetrics.width)
+  
+  // 计算总宽度：图标 + 间距 + 文字
+  const spacing = 4 // 图标和文字之间的间距
+  const totalWidth = iconSize + spacing + textWidth
+  const height = 18 // 稍微增加高度以容纳更大的文字
+  
+  // 创建画布
+  const canvasObj = createCanvas(totalWidth, height)
+  const ctx = canvasObj.getContext('2d')
+  
+  // 设置透明背景
+  ctx.clearRect(0, 0, totalWidth, height)
+  
+  // 绘制基础图标（居中对齐）
+  const img = await loadImage(iconPath)
+  const iconY = (height - iconSize) / 2
+  ctx.drawImage(img, 0, iconY, iconSize, iconSize)
+  
+  // 绘制白色文字（无背景）
+  const textX = iconSize + spacing
+  const textY = height / 2
+  
+  ctx.fillStyle = '#FFFFFF'
+  ctx.font = `bold ${fontSize}px Arial`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, textX, textY)
+  
+  // 转换为 NativeImage
+  const buffer = canvasObj.toBuffer('image/png')
+  const trayIcon = nativeImage.createFromBuffer(buffer)
+  
+  return trayIcon
+}
+
+// 更新托盘图标
+async function updateTrayIcon() {
+  if (!tray) return
+  
+  const unreadCount = database.getTotalUnread()
+  const icon = await createTrayIconWithBadge(unreadCount)
+  tray.setImage(icon)
+  
+  // 更新提示文字
+  if (unreadCount > 0) {
+    tray.setToolTip(`Chat Electron (${unreadCount} 条未读消息)`)
+  } else {
+    tray.setToolTip('Chat Electron')
+  }
+}
+
+// 创建系统托盘
+async function createTray() {
+  // 创建初始托盘图标
+  const icon = await createTrayIconWithBadge(0)
+  tray = new Tray(icon)
   
   // 设置托盘图标的提示文字
   tray.setToolTip('Chat Electron')
@@ -166,6 +235,9 @@ function createTray() {
       }
     }
   })
+  
+  // 初始化时更新一次图标
+  await updateTrayIcon()
 }
 
 // 创建 HTTP 服务器
@@ -251,6 +323,9 @@ function createHttpServer() {
       }
 
       database.clearUnread(conversationId)
+      
+      // 更新托盘图标
+      updateTrayIcon()
       
       ctx.body = {
         code: 0,
@@ -431,6 +506,9 @@ function createHttpServer() {
       // 增加未读数（机器人发送消息，增加未读数）
       database.incrementUnread(conversation.id)
       
+      // 更新托盘图标
+      updateTrayIcon()
+      
       // 发送系统通知
       const notification = new Notification({
         title: conversation.name,
@@ -470,12 +548,12 @@ function createHttpServer() {
   return server
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // 初始化数据库
   database.initDatabase()
   
   createWindow()
-  createTray()
+  await createTray()
   // 启动 HTTP 服务器
   createHttpServer()
 })
