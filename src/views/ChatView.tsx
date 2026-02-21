@@ -237,7 +237,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
           <input
             type="text"
             placeholder="搜索对话..."
-            className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            className="w-full px-4 py-2.5 rounded-lg focus:outline-none border border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
 
@@ -363,10 +363,10 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                 />
                 <button
                   onClick={sendMessage}
-                  className="px-6 py-3 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl hover:shadow-xl hover:shadow-green-500/50 transition-all duration-200 font-semibold flex items-center justify-center"
+                  className="w-12 h-12 self-end mb-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center flex-shrink-0"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 </button>
               </div>

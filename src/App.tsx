@@ -22,9 +22,9 @@ function App() {
       <div className="w-20 flex-shrink-0 bg-white dark:bg-gray-900 flex flex-col items-center py-6 gap-3 shadow-xl relative z-30 border-r border-gray-200 dark:border-gray-800">
         <button
           onClick={() => setActiveNav('chat')}
-          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
             activeNav === 'chat'
-              ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg shadow-green-500/50 scale-105'
+              ? 'bg-gray-200/50 dark:bg-gray-700/50 text-gray-900 dark:text-white'
               : 'bg-gray-50 dark:bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
           title="聊天"
@@ -36,9 +36,9 @@ function App() {
 
         <button
           onClick={() => setActiveNav('users')}
-          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
             activeNav === 'users'
-              ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/50 scale-105'
+              ? 'bg-gray-200/50 dark:bg-gray-700/50 text-gray-900 dark:text-white'
               : 'bg-gray-50 dark:bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
           title="用户管理"
@@ -50,9 +50,9 @@ function App() {
 
         <button
           onClick={() => setActiveNav('settings')}
-          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
             activeNav === 'settings'
-              ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/50 scale-105'
+              ? 'bg-gray-200/50 dark:bg-gray-700/50 text-gray-900 dark:text-white'
               : 'bg-gray-50 dark:bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
           title="设置"
