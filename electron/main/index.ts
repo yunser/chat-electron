@@ -261,6 +261,11 @@ function createHttpServer() {
   // 使用 body parser
   app.use(bodyParser())
 
+  // 根路径
+  router.get('/', (ctx) => {
+    ctx.body = 'hello chat'
+  })
+
   // 获取对话列表接口
   router.post('/api/conversations', (ctx) => {
     try {
