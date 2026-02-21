@@ -474,6 +474,38 @@ function createHttpServer() {
     }
   })
 
+  // 切换免打扰状态
+  router.post('/api/toggle-muted', (ctx) => {
+    try {
+      const { conversationId } = ctx.request.body as { conversationId: number }
+      
+      if (!conversationId) {
+        ctx.status = 400
+        ctx.body = {
+          code: -1,
+          message: 'conversationId is required',
+        }
+        return
+      }
+
+      const newMuted = database.toggleMuted(conversationId)
+      
+      // 更新托盘图标（免打扰会话的未读数不计入总数）
+      updateTrayIcon()
+      
+      ctx.body = {
+        code: 0,
+        message: 'success',
+        data: { muted: newMuted },
+      }
+    } catch (error: any) {
+      ctx.body = {
+        code: -1,
+        message: error.message,
+      }
+    }
+  })
+
   // 公共接口：以机器人名义发送消息
   router.post('/api/bot/send', (ctx) => {
     try {
@@ -508,13 +540,15 @@ function createHttpServer() {
       // 更新托盘图标
       updateTrayIcon()
       
-      // 发送系统通知
-      const notification = new Notification({
-        title: conversation.name,
-        body: content,
-        silent: false,
-      })
-      notification.show()
+      // 只有非免打扰会话才发送系统通知
+      if (!database.isConversationMuted(conversation.id)) {
+        const notification = new Notification({
+          title: conversation.name,
+          body: content,
+          silent: false,
+        })
+        notification.show()
+      }
       
       ctx.body = {
         code: 0,

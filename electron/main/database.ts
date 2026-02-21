@@ -32,12 +32,18 @@ export function initDatabase() {
   try {
     const checkColumn = db.prepare(`PRAGMA table_info(conversations)`).all() as any[]
     const hasTimestamp = checkColumn.some(col => col.name === 'last_timestamp')
+    const hasMuted = checkColumn.some(col => col.name === 'muted')
     
     if (!hasTimestamp) {
       console.log('添加 last_timestamp 字段...')
       db.exec(`ALTER TABLE conversations ADD COLUMN last_timestamp INTEGER DEFAULT 0`)
       // 为现有数据设置时间戳
       db.exec(`UPDATE conversations SET last_timestamp = ${Date.now()}`)
+    }
+    
+    if (!hasMuted) {
+      console.log('添加 muted 字段...')
+      db.exec(`ALTER TABLE conversations ADD COLUMN muted INTEGER DEFAULT 0`)
     }
   } catch (error) {
     console.log('数据库迁移检查:', error)
@@ -52,6 +58,7 @@ export function initDatabase() {
       last_time TEXT,
       last_timestamp INTEGER DEFAULT 0,
       unread INTEGER DEFAULT 0,
+      muted INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
@@ -122,7 +129,8 @@ export function getConversations() {
       u.type,
       c.last_message,
       c.last_time,
-      c.unread
+      c.unread,
+      c.muted
     FROM conversations c
     JOIN users u ON c.user_id = u.id
     ORDER BY c.last_timestamp DESC
@@ -190,13 +198,29 @@ export function clearUnread(conversationId: number) {
   `).run(conversationId)
 }
 
-// 获取总未读数
+// 获取总未读数（排除免打扰的会话）
 export function getTotalUnread() {
   const result = db.prepare(`
-    SELECT SUM(unread) as total FROM conversations
+    SELECT SUM(unread) as total FROM conversations WHERE muted = 0
   `).get() as { total: number | null }
   
   return result.total || 0
+}
+
+// 切换免打扰状态
+export function toggleMuted(conversationId: number) {
+  const conversation = db.prepare('SELECT muted FROM conversations WHERE id = ?').get(conversationId) as { muted: number }
+  const newMuted = conversation.muted === 0 ? 1 : 0
+  
+  db.prepare('UPDATE conversations SET muted = ? WHERE id = ?').run(newMuted, conversationId)
+  
+  return newMuted
+}
+
+// 检查会话是否免打扰
+export function isConversationMuted(conversationId: number) {
+  const conversation = db.prepare('SELECT muted FROM conversations WHERE id = ?').get(conversationId) as { muted: number }
+  return conversation?.muted === 1
 }
 
 // 获取所有用户（机器人）

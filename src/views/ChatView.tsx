@@ -9,6 +9,7 @@ interface Conversation {
   last_message: string
   last_time: string
   unread: number
+  muted: number
 }
 
 interface Message {
@@ -32,7 +33,9 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
   const [inputMessage, setInputMessage] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; conversation: Conversation } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -221,6 +224,40 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
     }
   }
 
+  const handleContextMenu = (e: React.MouseEvent, conversation: Conversation) => {
+    e.preventDefault()
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      conversation,
+    })
+  }
+
+  const handleToggleMuted = async (conversationId: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/toggle-muted`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ conversationId }),
+      })
+      const data = await response.json()
+      if (data.code === 0) {
+        loadConversations()
+      }
+    } catch (error) {
+      console.error('切换免打扰失败:', error)
+    }
+    setContextMenu(null)
+  }
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null)
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -231,22 +268,62 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
 
   return (
     <>
+      {/* 右键菜单 */}
+      {contextMenu && (
+        <div
+          className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[160px]"
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+            zIndex: 9999,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => handleToggleMuted(contextMenu.conversation.id)}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+          >
+            {contextMenu.conversation.muted === 1 ? (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                </svg>
+                <span>取消免打扰</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                  <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                </svg>
+                <span>消息免打扰</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* 中间对话列表面板 */}
       <div className="w-80 flex-shrink-0 bg-white dark:bg-gray-800 flex flex-col shadow-lg relative z-20">
         <div className="p-4 bg-white dark:bg-gray-800 shadow-md relative z-10">
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索对话..."
             className="w-full px-4 py-2.5 rounded-lg focus:outline-none border border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition-colors bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
 
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-850">
-          {conversations.map(conversation => (
+          {conversations.filter(conversation => 
+            conversation.name.toLowerCase().includes(searchQuery.toLowerCase())
+          ).map(conversation => (
             <div
               key={conversation.id}
               onClick={() => selectConversation(conversation)}
-              className={`flex items-center p-4 cursor-pointer transition-all duration-150 border-l-4 ${
+              onContextMenu={(e) => handleContextMenu(e, conversation)}
+              className={`flex items-center p-4 cursor-pointer transition-all duration-150 border-l-4 relative ${
                 currentConversation?.id === conversation.id
                   ? 'bg-green-50 dark:bg-gray-700 border-green-500'
                   : 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-750 border-transparent'
@@ -256,14 +333,14 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                 <img
                   src={conversation.avatar}
                   alt={conversation.name}
-                  className={`w-12 h-12 rounded-xl mr-3 ring-2 transition-all ${
-                    currentConversation?.id === conversation.id
-                      ? 'ring-green-500'
-                      : 'ring-gray-200 dark:ring-gray-700'
-                  }`}
+                  className="w-12 h-12 rounded-xl mr-3"
                 />
                 {conversation.unread > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+                  <span className={`absolute -top-1 -right-1 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg ${
+                    conversation.muted === 1
+                      ? 'bg-gray-400 dark:bg-gray-500 text-white'
+                      : 'bg-red-500 text-white'
+                  }`}>
                     {conversation.unread}
                   </span>
                 )}
@@ -282,6 +359,17 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                   <span className="text-sm truncate text-gray-600 dark:text-gray-400">
                     {conversation.last_message}
                   </span>
+                  {conversation.muted === 1 && (
+                    <svg 
+                      className="w-4 h-4 ml-2 flex-shrink-0 text-gray-400 dark:text-gray-500" 
+                      fill="currentColor" 
+                      viewBox="0 0 20 20"
+                      title="已免打扰"
+                    >
+                      <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                      <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                    </svg>
+                  )}
                 </div>
               </div>
             </div>
@@ -298,7 +386,7 @@ export function ChatView({ onNavigateToUser }: ChatViewProps) {
                 <img
                   src={currentConversation.avatar}
                   alt={currentConversation.name}
-                  className="w-10 h-10 rounded-xl mr-3 ring-2 ring-green-500"
+                  className="w-10 h-10 rounded-xl mr-3"
                 />
                 <div>
                   <span className="font-bold text-lg text-gray-900 dark:text-white">
