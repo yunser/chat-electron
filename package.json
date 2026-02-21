@@ -1,7 +1,7 @@
 {
   "name": "electron-vite-react",
   "productName": "简聊",
-  "version": "26.221.0",
+  "version": "26.221.1",
   "main": "dist-electron/main/index.js",
   "description": "Electron Vite React boilerplate.",
   "author": "草鞋没号 <308487730@qq.com>",
